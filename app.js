@@ -15,6 +15,17 @@ function shiftMonth(n){calMonth=new Date(calMonth.getFullYear(),calMonth.getMont
 function renderCalendar(){const y=calMonth.getFullYear(),m=calMonth.getMonth();$('#pickMonth').textContent=`${y}年${m+1}月 ▾`;$('#nextMonth').disabled=localDay(new Date(y,m+1,1))>localDay(new Date(new Date().getFullYear(),new Date().getMonth(),1));const grid=$('#monthGrid');grid.replaceChildren();const offset=(new Date(y,m,1).getDay()+6)%7;for(let i=0;i<offset;i++)grid.append(document.createElement('span'));const total=new Date(y,m+1,0).getDate();for(let day=1;day<=total;day++){const dt=localDay(new Date(y,m,day));const count=entries.filter(e=>e.date===dt).length;const b=document.createElement('button');b.className=(count?'has ':'')+(pickedDay===dt?'picked':'');b.disabled=dt>localDay();b.innerHTML=`${day}${count?`<small>${count}/3</small>`:''}`;b.onclick=()=>{pickedDay=dt;renderCalendarDay();renderCalendar()};grid.append(b)}renderCalendarDay()}
 function renderCalendarDay(){const box=$('#calendarDay');box.replaceChildren();if(!pickedDay)return;const h=document.createElement('h2');h.textContent=pickedDay+' の記録';box.append(h);const found=entries.filter(e=>e.date===pickedDay);if(!found.length){box.insertAdjacentHTML('beforeend','<div class="empty">記録がありません</div>');return}slots.forEach(s=>{const e=found.find(e=>e.period===s);if(e)box.append(row(e,()=>{switchTab('record');$('#date').value=e.date;slot=e.period;fill()}))})}
 function switchTab(name){document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==name);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('selected',b.dataset.tab===name));if(name==='record'){fill();chart()}if(name==='search')renderSearch();if(name==='calendar')renderCalendar()}
+function returnToToday(){
+  const today=localDay();
+  $('#date').value=today;
+  slot='朝';
+  pickedDay=today;
+  calMonth=new Date();
+  switchTab('record');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('#todayRecord').onclick=returnToToday;
+$('#todayCalendar').onclick=returnToToday;
 $('#date').value=localDay();$('#date').max=localDay();$('#date').onchange=fill;for(const k of ['mood','fatigue'])$(`#${k}`).oninput=()=>{$(`#${k}Value`).textContent=$(`#${k}`).value};
 $('#save').onclick=()=>{const date=$('#date').value;if(!date||date>localDay()){msg('今日以前の日付を指定してください');return}const e={date,period:slot,mood:Number($('#mood').value),fatigue:Number($('#fatigue').value),comment:$('#comment').value};const old=entries;entries=entries.filter(x=>!(x.date===date&&x.period===slot)).concat(e);try{saveStore();msg('記録を保存しました');fill();chart()}catch(err){entries=old;msg('保存できませんでした。空き容量などをご確認ください')}};
 $('#delete').onclick=()=>{if(!confirm('この時間帯の記録を削除しますか？'))return;const old=entries;entries=entries.filter(e=>!(e.date===$('#date').value&&e.period===slot));try{saveStore();fill();chart();msg('記録を削除しました')}catch(err){entries=old;msg('削除を保存できませんでした')}};
